@@ -45,6 +45,8 @@ spec:
       labels:
         app: pytorch-notebook
     spec:
+       securityContext:
+        fsGroup: 1000  # Ensures that the volume is group-owned by 1000
       containers:
       - name: notebook
         image: quay.io/jupyter/pytorch-notebook:pytorch-2.5.1
@@ -61,6 +63,7 @@ spec:
         args:
           - "--IdentityProvider.token=''"
           - "--ServerApp.password=''"
+          - "--ServerApp.ip=0.0.0.0"   # Listen on all interfaces
         volumeMounts:
         - name: data-volume
           mountPath: /home/jovyan/work
