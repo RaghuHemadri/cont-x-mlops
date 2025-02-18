@@ -69,6 +69,36 @@ spec:
           persistentVolumeClaim:
             claimName: minio-pvc
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-ui
+  namespace: gourmetgram-dev
+spec:
+  selector:
+    app: minio
+  ports:
+    - name: web-ui
+      port: 9001
+      targetPort: 9001
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: gourmetgram-dev
+spec:
+  selector:
+    app: minio
+  ports:
+    - name: api
+      port: 9000
+      targetPort: 9000
+      protocol: TCP
+  type: ClusterIP
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -88,18 +118,3 @@ spec:
             /usr/bin/mc mb minio/gourmetgram-modelstore;
             /usr/bin/mc mb minio/gourmetgram-data-food11;
       restartPolicy: Never
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: minio-ui
-  namespace: gourmetgram-dev
-spec:
-  selector:
-    app: minio
-  ports:
-    - name: web-ui
-      port: 9001
-      targetPort: 9001
-      protocol: TCP
-  type: ClusterIP
