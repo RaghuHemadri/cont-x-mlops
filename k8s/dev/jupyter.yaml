@@ -57,7 +57,7 @@ spec:
           limits:
             cpu: "1"      # Max usage 1 vCPUs
             memory: "2Gi" # Max usage 2GiB RAM
-       volumeMounts:
+        volumeMounts:
         - name: data-volume
           mountPath: /content/data
       volumes:
