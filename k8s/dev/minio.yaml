@@ -9,6 +9,9 @@ spec:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   storageClassName: local-storage 
+  claimRef:
+    name: minio-pvc
+    namespace: gourmetgram-dev
   hostPath:
     path: "/mnt/data"  
 ---
