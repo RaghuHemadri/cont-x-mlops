@@ -47,10 +47,17 @@ spec:
     spec:
       containers:
       - name: notebook
-        image: quay.io/jupyter/pytorch-notebook:cpu-pytorch-2.5.1
+        image: quay.io/jupyter/pytorch-notebook:pytorch-2.5.1
         ports:
         - containerPort: 8888
-        volumeMounts:
+        resources:
+          requests:
+            cpu: "500m"   # Request 0.5 vCPU
+            memory: "1Gi" # Request 1GiB RAM
+          limits:
+            cpu: "1"      # Max usage 1 vCPUs
+            memory: "2Gi" # Max usage 2GiB RAM
+       volumeMounts:
         - name: data-volume
           mountPath: /content/data
       volumes:
