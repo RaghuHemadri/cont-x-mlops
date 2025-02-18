@@ -45,7 +45,7 @@ spec:
       labels:
         app: pytorch-notebook
     spec:
-       securityContext:
+      securityContext:
         fsGroup: 1000  # Ensures that the volume is group-owned by 1000
       containers:
       - name: notebook
