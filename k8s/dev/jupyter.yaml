@@ -59,7 +59,8 @@ spec:
             memory: "2Gi" # Max usage 2GiB RAM
           command: ["start-notebook.sh"]
           args:
-            - "--NotebookApp.token="
+            - "--IdentityProvider.token=''"
+            - "--ServerApp.password=''"
           volumeMounts:
           - name: data-volume
             mountPath: /content/data
