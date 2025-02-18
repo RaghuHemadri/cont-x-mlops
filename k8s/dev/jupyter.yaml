@@ -57,13 +57,13 @@ spec:
           limits:
             cpu: "1"      # Max usage 1 vCPUs
             memory: "2Gi" # Max usage 2GiB RAM
-          command: ["start-notebook.sh"]
-          args:
-            - "--IdentityProvider.token=''"
-            - "--ServerApp.password=''"
-          volumeMounts:
-          - name: data-volume
-            mountPath: /home/jovyan/work
+        command: ["start-notebook.sh"]
+        args:
+          - "--IdentityProvider.token=''"
+          - "--ServerApp.password=''"
+        volumeMounts:
+        - name: data-volume
+          mountPath: /home/jovyan/work
       volumes:
       - name: data-volume
         persistentVolumeClaim:
