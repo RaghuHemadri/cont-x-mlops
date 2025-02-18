@@ -63,7 +63,7 @@ spec:
             - "--ServerApp.password=''"
           volumeMounts:
           - name: data-volume
-            mountPath: /content/data
+            mountPath: /home/jovyan/work
       volumes:
       - name: data-volume
         persistentVolumeClaim:

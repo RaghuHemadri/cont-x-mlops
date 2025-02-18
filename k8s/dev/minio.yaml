@@ -28,16 +28,6 @@ spec:
       storage: 5Gi
   storageClassName: local-storage 
 ---
-apiVersion: v1
-kind: Secret
-metadata:
-  name: minio-credentials
-  namespace: gourmetgram-dev
-type: Opaque
-stringData:
-  accesskey: "your-access-key"    # Replace with your own access key
-  secretkey: "your-secret-key"    # Replace with your own secret key
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -67,20 +57,14 @@ spec:
             - name: MINIO_BROWSER_REDIRECT_URL
               value: "http://minio-ui:9001" 
             - name: MINIO_ROOT_USER
-              valueFrom:
-                secretKeyRef:
-                  name: minio-credentials
-                  key: accesskey
+              value: "your-access-key"
             - name: MINIO_ROOT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: minio-credentials
-                  key: secretkey
+              value: "your-secret-key"
           ports:
           - containerPort: 9000
             name: api
           - containerPort: 9001
-            name: webui
+            name: web-ui
           volumeMounts:
             - name: minio-storage
               mountPath: /data
@@ -104,7 +88,7 @@ spec:
           - /bin/sh
           - -c
           - |
-            /usr/bin/mc alias set minio http://minio:9000 accesskey secretkey;
+            /usr/bin/mc alias set minio http://minio:9000 your-access-key your-secret-key;
             /usr/bin/mc mb minio/gourmetgram-modelstore;
             /usr/bin/mc mb minio/gourmetgram-data-food11;
       restartPolicy: Never
