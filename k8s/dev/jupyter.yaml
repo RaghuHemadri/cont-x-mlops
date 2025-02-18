@@ -45,8 +45,13 @@ spec:
       labels:
         app: pytorch-notebook
     spec:
-      securityContext:
-        fsGroup: 1000  # Ensures that the volume is group-owned by 1000
+      initContainers:
+      - name: fix-permissions
+        image: busybox
+        command: ["sh", "-c", "chown -R 1000:1000 /home/jovyan/work"]
+        volumeMounts:
+        - name: data-volume
+          mountPath: /home/jovyan/work
       containers:
       - name: notebook
         image: quay.io/jupyter/pytorch-notebook:pytorch-2.5.1
