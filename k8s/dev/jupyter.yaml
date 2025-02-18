@@ -59,11 +59,11 @@ spec:
         - containerPort: 8888
         resources:
           requests:
-            cpu: "500m"   # Request 0.5 vCPU
-            memory: "1Gi" # Request 1GiB RAM
+            cpu: "1"   # Request 1 vCPU
+            memory: "2Gi" # Request 2GiB RAM
           limits:
-            cpu: "1"      # Max usage 1 vCPUs
-            memory: "2Gi" # Max usage 2GiB RAM
+            cpu: "2"      # Max usage 2 vCPUs
+            memory: "4Gi" # Max usage 4GiB RAM
         command: ["start-notebook.sh"]
         args:
           - "--IdentityProvider.token=''"
@@ -72,6 +72,15 @@ spec:
         volumeMounts:
         - name: data-volume
           mountPath: /home/jovyan/work
+        env:
+          - name: AWS_ACCESS_KEY_ID
+            value: "your-access-key"
+          - name: AWS_SECRET_ACCESS_KEY
+            value: "your-secret-key"
+          - name: AWS_S3_ENDPOINT
+            value: "minio:9000"
+          - name: FOOD11_DATA_DIR
+            value: "/tmp/food11"
       volumes:
       - name: data-volume
         persistentVolumeClaim:
