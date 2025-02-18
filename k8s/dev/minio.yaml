@@ -45,17 +45,13 @@ spec:
     spec:
       containers:
         - name: minio
-          image: minio/minio:latest
+          image: minio/minio
           args:
             - server
             - /data
             - "--console-address"
             - ":9001"
           env:
-            - name: MINIO_SERVER_URL
-              value: "http://minio:9000"
-            - name: MINIO_BROWSER_REDIRECT_URL
-              value: "http://minio-ui:9001" 
             - name: MINIO_ROOT_USER
               value: "your-access-key"
             - name: MINIO_ROOT_PASSWORD
