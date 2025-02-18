@@ -57,11 +57,9 @@ spec:
           limits:
             cpu: "1"      # Max usage 1 vCPUs
             memory: "2Gi" # Max usage 2GiB RAM
-          env:
-            - name: JUPYTER_TOKEN
-              value: ""  # Disable token authentication
-            - name: JUPYTER_ENABLE_LAB
-              value: "yes" 
+          command: ["start-notebook.sh"]
+          args:
+            - "--NotebookApp.token=''"
           volumeMounts:
           - name: data-volume
             mountPath: /content/data
