@@ -1,0 +1,31 @@
+---
+- name: Post-Install kubectl Setup
+  hosts: node1 node2
+  become: yes
+  tasks:
+    - name: Ensure .kube directory exists
+      file:
+        path: "/home/{{ ansible_user }}/.kube"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0755'
+
+    - name: Copy admin.conf to user's kubeconfig
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "/home/{{ ansible_user }}/.kube/config"
+        remote_src: yes
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0600'
+
+    - name: Run kubectl get nodes as cc
+      command: kubectl get nodes
+      become: yes
+      become_user: cc
+      register: kubectl_output
+
+    - name: Show kubectl get nodes output
+      debug:
+        msg: "{{ kubectl_output.stdout_lines }}"

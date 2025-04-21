@@ -1,0 +1,63 @@
+---
+- name: Add a repo and deploy an app in ArgoCD
+  hosts: node1
+  become: yes
+  vars:
+    argocd_username: "admin"
+    repo_path: "https://github.com/teaching-on-testbeds/gourmetgram-iac.git"
+    app_name: "gourmetgram-dev-apps"
+    app_namespace: "gourmetgram-dev"
+    app_path: "k8s/dev"
+
+  tasks:
+    - name: Get ArgoCD admin password from Kubernetes secret
+      command: >
+        kubectl get secret -n argocd argocd-initial-admin-secret \
+        -o jsonpath="{.data.password}"
+      register: argocd_password_base64
+
+    - name: Decode ArgoCD admin password
+      shell: echo {{ argocd_password_base64.stdout }} | base64 --decode
+      register: argocd_password
+
+    - name: Get ArgoCD server address
+      command: >
+        kubectl get svc -n argocd argocd-server -o jsonpath="{.spec.clusterIP}"
+      register: argocd_server_ip
+
+    - name: Log in to ArgoCD
+      command: >
+        argocd login {{ argocd_server_ip.stdout }} --username {{ argocd_username }} \
+        --password "{{ argocd_password.stdout }}" --grpc-web --port-forward --port-forward-namespace=argocd
+      register: login_result
+      changed_when: false
+
+    - name: Add repository to ArgoCD
+      command: >
+        argocd repo add {{ repo_path }} --port-forward --port-forward-namespace=argocd
+      register: repo_result
+      changed_when: "'Repository already exists' not in repo_result.stderr"
+
+    - name: Deploy ArgoCD application
+      command: >
+        argocd app create {{ app_name }} \
+        --repo {{ repo_path }} \
+        --path {{ app_path }} \
+        --dest-server https://kubernetes.default.svc \
+        --dest-namespace {{ app_namespace }} \
+        --port-forward --port-forward-namespace=argocd \
+        --sync-policy automated --self-heal
+      register: app_result
+      changed_when: "'Application already exists' not in app_result.stderr"
+
+    - name: Display login result
+      debug:
+        msg: "{{ login_result.stdout_lines }}"
+
+    - name: Display repository result
+      debug:
+        msg: "{{ repo_result.stdout_lines }}"
+
+    - name: Display application result
+      debug:
+        msg: "{{ app_result.stdout_lines }}"
