@@ -97,6 +97,9 @@ kind: Job
 metadata:
   name: minio-create-bucket
   namespace: gourmetgram-platform
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
 spec:
   backoffLimit: 3
   ttlSecondsAfterFinished: 60
@@ -125,6 +128,8 @@ spec:
               done
               if ! mc ls minio/mlflow-artifacts; then
                 mc mb minio/mlflow-artifacts;
+              else
+                echo "Bucket already exists.";
               fi
       restartPolicy: OnFailure
 
