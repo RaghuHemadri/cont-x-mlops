@@ -1,0 +1,23 @@
+replicaCount: 1
+
+image:
+  repository: localhost:5000/gourmetgram-app
+  tag: production
+
+service:
+  port: 80
+  externalIP: ""   # Placeholder
+
+resources:
+  limits:
+    cpu: "500m"
+    memory: "256Mi"
+  requests:
+    cpu: "200m"
+    memory: "128Mi"
+
+hpa:
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilization: 50
+

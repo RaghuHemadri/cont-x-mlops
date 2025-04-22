@@ -37,6 +37,16 @@
       set_fact:
         external_ip: "{{ ansible_all_ipv4_addresses | select('match', '^10\\.56\\..*') | list | first }}"
 
+    - name: Ensure gourmetgram-platform namespace exists
+      command: kubectl get namespace gourmetgram-platform
+      register: ns_check
+      failed_when: false
+      changed_when: false
+
+    - name: Create gourmetgram-platform namespace if missing
+      when: ns_check.rc != 0
+      command: kubectl create namespace gourmetgram-platform
+
     - name: Check if MinIO secret already exists
       command: kubectl get secret minio-credentials -n gourmetgram-platform
       register: minio_secret_check
@@ -99,19 +109,9 @@
         --port-forward --port-forward-namespace=argocd
       register: app_update
 
-    - name: Sync ArgoCD application
-      command: >
-        argocd app sync {{ app_name }} --port-forward --port-forward-namespace=argocd --prune --retry-limit 3
-      register: sync_result
-      changed_when: false
-
     - name: Display MinIO credentials
       debug:
         msg: |
           MinIO Access Key: {{ minio_access_key }}
           MinIO Secret Key: {{ minio_secret_key }}
-
-    - name: Display sync result
-      debug:
-        msg: "{{ sync_result.stdout_lines }}"
 

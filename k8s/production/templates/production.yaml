@@ -1,0 +1,60 @@
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gourmetgram-app
+  namespace: gourmetgram-production
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: gourmetgram-app
+  template:
+    metadata:
+      labels:
+        app: gourmetgram-app
+    spec:
+      containers:
+        - name: gourmetgram-app
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          ports:
+            - containerPort: 8080
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: gourmetgram-app
+  namespace: gourmetgram-production
+spec:
+  selector:
+    app: gourmetgram-app
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 8080
+  externalIPs:
+    - {{ .Values.service.externalIP }}
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: gourmetgram-app-hpa
+  namespace: gourmetgram-production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: gourmetgram-app
+  minReplicas: {{ .Values.hpa.minReplicas }}
+  maxReplicas: {{ .Values.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.hpa.targetCPUUtilization }}
+
