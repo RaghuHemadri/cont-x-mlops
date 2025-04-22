@@ -270,7 +270,7 @@ spec:
               echo "Downloading model..."
               curl -L -o /tmp/food11.pth https://github.com/teaching-on-testbeds/gourmetgram/raw/refs/heads/master/food11.pth
 
-              python -c '
+              python3 - <<EOF
 import mlflow
 import torch
 
@@ -298,6 +298,6 @@ except mlflow.exceptions.RestException:
             alias=alias,
             version=version
         )
-'
+EOF
       restartPolicy: OnFailure
 
