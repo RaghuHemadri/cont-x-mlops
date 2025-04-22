@@ -1,5 +1,5 @@
 ---
-- name: Add repo and deploy/update MLflow app in ArgoCD with dynamic IPs
+- name: Deploy or update MLflow platform via ArgoCD & Helm
   hosts: node1
   become: yes
   vars:
@@ -43,20 +43,7 @@
       failed_when: false
       changed_when: false
 
-    - name: Update ArgoCD application if exists
-      when: app_check.rc == 0
-      command: >
-        argocd app set {{ app_name }} \
-        --repo {{ repo_path }} \
-        --path {{ app_path }} \
-        --dest-server https://kubernetes.default.svc \
-        --dest-namespace "" \
-        --kustomize-parameter MINIO_EXTERNAL_IP={{ external_ip }} \
-        --kustomize-parameter MLFLOW_EXTERNAL_IP={{ external_ip }} \
-        --port-forward --port-forward-namespace=argocd
-      register: app_update
-
-    - name: Create ArgoCD application if it does not exist
+    - name: Create ArgoCD Helm application if it does not exist
       when: app_check.rc != 0
       command: >
         argocd app create {{ app_name }} \
@@ -64,11 +51,21 @@
         --path {{ app_path }} \
         --dest-server https://kubernetes.default.svc \
         --dest-namespace "" \
-        --kustomize-parameter MINIO_EXTERNAL_IP={{ external_ip }} \
-        --kustomize-parameter MLFLOW_EXTERNAL_IP={{ external_ip }} \
+        --helm-set-string minio.externalIP={{ external_ip }} \
+        --helm-set-string mlflow.externalIP={{ external_ip }} \
         --port-forward --port-forward-namespace=argocd \
         --sync-policy automated --self-heal
       register: app_create
+
+    - name: Update ArgoCD Helm application if it exists
+      when: app_check.rc == 0
+      command: >
+        argocd app set {{ app_name }} \
+        --dest-namespace "" \
+        --helm-set-string minio.externalIP={{ external_ip }} \
+        --helm-set-string mlflow.externalIP={{ external_ip }} \
+        --port-forward --port-forward-namespace=argocd
+      register: app_update
 
     - name: Sync ArgoCD application
       command: >

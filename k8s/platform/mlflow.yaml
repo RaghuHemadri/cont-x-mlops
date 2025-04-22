@@ -76,10 +76,14 @@ spec:
   selector:
     app: minio
   ports:
-    - port: 9000
+    - name: api
+      port: 9000
       targetPort: 9000
-    - port: 9001
+    - name: console
+      port: 9001
       targetPort: 9001
+  externalIPs:
+    - {{ .Values.minio.externalIP }}
 
 ---
 apiVersion: batch/v1
@@ -201,4 +205,6 @@ spec:
   ports:
     - port: 8000
       targetPort: 8000
+  externalIPs:
+    - {{ .Values.mlflow.externalIP }}
 
