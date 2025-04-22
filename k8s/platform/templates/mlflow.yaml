@@ -98,6 +98,8 @@ metadata:
   name: minio-create-bucket
   namespace: gourmetgram-platform
 spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 60
   template:
     spec:
       containers:
@@ -117,8 +119,10 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              sleep 10
-              mc alias set minio http://minio:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY && \
+              until mc alias set minio http://minio:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY; do
+                echo "Waiting for MinIO...";
+                sleep 5;
+              done
               if ! mc ls minio/mlflow-artifacts; then
                 mc mb minio/mlflow-artifacts;
               fi
