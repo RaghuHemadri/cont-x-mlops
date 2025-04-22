@@ -101,7 +101,7 @@
 
     - name: Sync ArgoCD application
       command: >
-        argocd app sync {{ app_name }} --port-forward --port-forward-namespace=argocd
+        argocd app sync {{ app_name }} --port-forward --port-forward-namespace=argocd --prune --retry-limit 3
       register: sync_result
       changed_when: false
 
