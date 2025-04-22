@@ -1,0 +1,204 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gourmetgram-platform
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-pvc
+  namespace: gourmetgram-platform
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: gourmetgram-platform
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+  namespace: gourmetgram-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+        - name: minio
+          image: minio/minio
+          args: ["server", "/data", "--console-address", ":9001"]
+          ports:
+            - containerPort: 9000
+            - containerPort: 9001
+          env:
+            - name: MINIO_ROOT_USER
+              value: "your-access-key"
+            - name: MINIO_ROOT_PASSWORD
+              value: "your-secret-key"
+          volumeMounts:
+            - name: minio-storage
+              mountPath: /data
+      volumes:
+        - name: minio-storage
+          persistentVolumeClaim:
+            claimName: minio-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: gourmetgram-platform
+spec:
+  selector:
+    app: minio
+  ports:
+    - port: 9000
+      targetPort: 9000
+    - port: 9001
+      targetPort: 9001
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-create-bucket
+  namespace: gourmetgram-platform
+spec:
+  template:
+    spec:
+      containers:
+        - name: mc
+          image: minio/mc
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              sleep 10
+              mc alias set minio http://minio:9000 your-access-key your-secret-key &&
+              if ! mc ls minio/mlflow-artifacts; then
+                mc mb minio/mlflow-artifacts;
+              fi
+      restartPolicy: OnFailure
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: gourmetgram-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:latest
+          env:
+            - name: POSTGRES_USER
+              value: "user"
+            - name: POSTGRES_PASSWORD
+              value: "password"
+            - name: POSTGRES_DB
+              value: "mlflowdb"
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: gourmetgram-platform
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow
+  namespace: gourmetgram-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow
+  template:
+    metadata:
+      labels:
+        app: mlflow
+    spec:
+      containers:
+        - name: mlflow
+          image: ghcr.io/mlflow/mlflow:v2.20.2
+          ports:
+            - containerPort: 8000
+          env:
+            - name: MLFLOW_TRACKING_URI
+              value: http://0.0.0.0:8000
+            - name: MLFLOW_S3_ENDPOINT_URL
+              value: http://minio:9000
+            - name: AWS_ACCESS_KEY_ID
+              value: "your-access-key"
+            - name: AWS_SECRET_ACCESS_KEY
+              value: "your-secret-key"
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install psycopg2-binary boto3 &&
+              mlflow server --backend-store-uri postgresql://user:password@postgres/mlflowdb \
+              --artifacts-destination s3://mlflow-artifacts/ --serve-artifacts --host 0.0.0.0 --port 8000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow
+  namespace: gourmetgram-platform
+spec:
+  selector:
+    app: mlflow
+  ports:
+    - port: 8000
+      targetPort: 8000
+
