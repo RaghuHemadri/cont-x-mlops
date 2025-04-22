@@ -260,6 +260,8 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
+              set -e
+
               pip install mlflow torch requests --extra-index-url https://download.pytorch.org/whl/cpu
 
               echo "Waiting for MLflow to be ready..."
@@ -270,7 +272,7 @@ spec:
               echo "Downloading model..."
               curl -L -o /tmp/food11.pth https://github.com/teaching-on-testbeds/gourmetgram/raw/refs/heads/master/food11.pth
 
-              python3 - <<EOF
+              python3 - <<'EOF'
 import mlflow
 import torch
 
