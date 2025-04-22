@@ -55,9 +55,15 @@ spec:
             - containerPort: 9001
           env:
             - name: MINIO_ROOT_USER
-              value: "your-access-key"
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: accesskey
             - name: MINIO_ROOT_PASSWORD
-              value: "your-secret-key"
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: secretkey
           volumeMounts:
             - name: minio-storage
               mountPath: /data
@@ -97,11 +103,22 @@ spec:
       containers:
         - name: mc
           image: minio/mc
+          env:
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: accesskey
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: secretkey
           command: ["/bin/sh", "-c"]
           args:
             - |
               sleep 10
-              mc alias set minio http://minio:9000 your-access-key your-secret-key &&
+              mc alias set minio http://minio:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY && \
               if ! mc ls minio/mlflow-artifacts; then
                 mc mb minio/mlflow-artifacts;
               fi
@@ -183,9 +200,16 @@ spec:
             - name: MLFLOW_S3_ENDPOINT_URL
               value: http://minio:9000
             - name: AWS_ACCESS_KEY_ID
-              value: "your-access-key"
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: accesskey
             - name: AWS_SECRET_ACCESS_KEY
-              value: "your-secret-key"
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: secretkey
+
           command: ["/bin/sh", "-c"]
           args:
             - |
