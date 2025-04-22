@@ -1,5 +1,5 @@
 ---
-- name: Add a repo and deploy an app in ArgoCD
+- name: Add repo and deploy/update MLflow app in ArgoCD with dynamic IPs
   hosts: node1
   become: yes
   vars:
@@ -19,11 +19,6 @@
       shell: echo {{ argocd_password_base64.stdout }} | base64 --decode
       register: argocd_password
 
-    - name: Get ArgoCD server address
-      command: >
-        kubectl get svc -n argocd argocd-server -o jsonpath="{.spec.clusterIP}"
-      register: argocd_server_ip
-
     - name: Log in to ArgoCD
       command: >
         argocd login localhost --username {{ argocd_username }} \
@@ -37,26 +32,51 @@
       register: repo_result
       changed_when: "'Repository already exists' not in repo_result.stderr"
 
-    - name: Deploy ArgoCD application
+    - name: Detect external IP starting with 10.56
+      set_fact:
+        external_ip: "{{ ansible_all_ipv4_addresses | select('match', '^10\\.56\\..*') | list | first }}"
+
+    - name: Check if ArgoCD application exists
+      command: >
+        argocd app get {{ app_name }} --port-forward --port-forward-namespace=argocd
+      register: app_check
+      failed_when: false
+      changed_when: false
+
+    - name: Update ArgoCD application if exists
+      when: app_check.rc == 0
+      command: >
+        argocd app set {{ app_name }} \
+        --repo {{ repo_path }} \
+        --path {{ app_path }} \
+        --dest-server https://kubernetes.default.svc \
+        --dest-namespace "" \
+        --kustomize-parameter MINIO_EXTERNAL_IP={{ external_ip }} \
+        --kustomize-parameter MLFLOW_EXTERNAL_IP={{ external_ip }} \
+        --port-forward --port-forward-namespace=argocd
+      register: app_update
+
+    - name: Create ArgoCD application if it does not exist
+      when: app_check.rc != 0
       command: >
         argocd app create {{ app_name }} \
         --repo {{ repo_path }} \
         --path {{ app_path }} \
         --dest-server https://kubernetes.default.svc \
         --dest-namespace "" \
+        --kustomize-parameter MINIO_EXTERNAL_IP={{ external_ip }} \
+        --kustomize-parameter MLFLOW_EXTERNAL_IP={{ external_ip }} \
         --port-forward --port-forward-namespace=argocd \
         --sync-policy automated --self-heal
-      register: app_result
-      changed_when: "'Application already exists' not in app_result.stderr"
+      register: app_create
 
-    - name: Display login result
-      debug:
-        msg: "{{ login_result.stdout_lines }}"
+    - name: Sync ArgoCD application
+      command: >
+        argocd app sync {{ app_name }} --port-forward --port-forward-namespace=argocd
+      register: sync_result
+      changed_when: false
 
-    - name: Display repository result
+    - name: Display sync result
       debug:
-        msg: "{{ repo_result.stdout_lines }}"
+        msg: "{{ sync_result.stdout_lines }}"
 
-    - name: Display application result
-      debug:
-        msg: "{{ app_result.stdout_lines }}"
