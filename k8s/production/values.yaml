@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: localhost:5000/gourmetgram-app
+  repository: registry.kube-system.svc.cluster.local:5000/gourmetgram-app
   tag: production
 
 service:
