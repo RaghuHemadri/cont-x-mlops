@@ -41,6 +41,8 @@ spec:
         args:
           - |
             git clone --branch master https://github.com/teaching-on-testbeds/gourmetgram.git /workspace
+            echo "Repo cloned successfully!"
+            ls -la /workspace
         volumeMounts:
           - name: git-source
             mountPath: /workspace
