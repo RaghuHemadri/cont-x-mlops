@@ -47,7 +47,7 @@ spec:
       image: gcr.io/kaniko-project/executor:latest
       command: ["/kaniko/executor"]
       args:
-        - "--dockerfile=/src/Dockerfile"
+        - "--dockerfile=Dockerfile"
         - "--context=/src"
         - "--destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:canary"
         - "--destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:staging"
