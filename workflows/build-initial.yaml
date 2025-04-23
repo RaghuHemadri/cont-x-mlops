@@ -1,77 +1,48 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: kaniko-docker-config
-  namespace: argo
-data:
-  config.json: |
-    {
-      "insecure-registries": ["registry.kube-system.svc.cluster.local:5000"]
-    }
-
----
-
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  name: build-initial
+  generateName: kaniko-pvc-build-
 spec:
-  entrypoint: build-process
-  volumes:
-    - name: shared-workspace
-      emptyDir: {}
-    - name: docker-config
-      configMap:
-        name: kaniko-docker-config
+  entrypoint: kaniko-build-flow
+  volumeClaimTemplates:
+  - metadata:
+      name: workdir
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
 
   templates:
-    - name: build-process
-      steps:
-        - - name: clone-repo
-            template: git-clone
-        - - name: verify-clone
-            template: list-files
-        - - name: kaniko-build
-            template: kaniko-build
+  - name: kaniko-build-flow
+    steps:
+      - - name: clone-repo
+          template: git-clone
+      - - name: kaniko-build
+          template: kaniko
 
-    - name: git-clone
-      container:
-        image: alpine/git
-        command: [sh, -c]
-        args:
-          - |
-            set -eux
-            git clone --branch master https://github.com/teaching-on-testbeds/gourmetgram.git /workspace
-        volumeMounts:
-          - name: shared-workspace
-            mountPath: /workspace
+  - name: git-clone
+    container:
+      image: alpine/git
+      command: [sh, -c]
+      args:
+        - |
+          git clone --branch master https://github.com/teaching-on-testbeds/gourmetgram.git /mnt/workspace
+      volumeMounts:
+      - name: workdir
+        mountPath: /mnt/workspace
 
-    - name: list-files
-      container:
-        image: alpine
-        command: [sh, -c]
-        args:
-          - |
-            echo "Verifying cloned repo contents:"
-            ls -la /workspace
-        volumeMounts:
-          - name: shared-workspace
-            mountPath: /workspace
+  - name: kaniko
+    container:
+      image: gcr.io/kaniko-project/executor:latest
+      args:
+        - --dockerfile=/mnt/workspace/Dockerfile
+        - --context=/mnt/workspace
+        - --destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:staging
+        - --destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:canary
+        - --destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:production
+        - --insecure
+      volumeMounts:
+      - name: workdir
+        mountPath: /mnt/workspace
 
-    - name: kaniko-build
-      container:
-        image: gcr.io/kaniko-project/executor:latest
-        command: ["/kaniko/executor"]
-        args:
-          - "--dockerfile=Dockerfile"
-          - "--context=/workspace"
-          - "--destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:canary"
-          - "--destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:staging"
-          - "--destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:production"
-          - "--insecure"
-          - "--cache=true"
-        volumeMounts:
-          - name: shared-workspace
-            mountPath: /workspace
-          - name: docker-config
-            mountPath: /kaniko/.docker
