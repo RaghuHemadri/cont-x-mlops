@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gourmetgram-app
-  namespace: gourmetgram-staging
+  namespace: gourmetgram-canary
 
 spec:
   replicas: {{ .Values.replicaCount }}
@@ -19,7 +19,7 @@ spec:
         - name: gourmetgram-app
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
           ports:
-            - containerPort: 8080
+            - containerPort: 8000
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
 ---
@@ -28,13 +28,13 @@ apiVersion: v1
 kind: Service
 metadata:
   name: gourmetgram-app
-  namespace: gourmetgram-staging
+  namespace: gourmetgram-canary
 spec:
   selector:
     app: gourmetgram-app
   ports:
     - port: {{ .Values.service.port }}
-      targetPort: 8080
+      targetPort: 8000
   externalIPs:
     - {{ .Values.service.externalIP }}
 
