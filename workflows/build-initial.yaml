@@ -16,33 +16,25 @@ kind: Workflow
 metadata:
   name: build-initial
 spec:
-  entrypoint: git-clone-and-build
+  entrypoint: kaniko-direct-build
   volumes:
     - name: docker-config
       configMap:
         name: kaniko-docker-config
 
   templates:
-    - name: git-clone-and-build
+    - name: kaniko-direct-build
       container:
         image: gcr.io/kaniko-project/executor:latest
-        command: ["/bin/sh", "-c"]
+        command: ["/kaniko/executor"]
         args:
-          - |
-            set -eux
-            echo "Cloning repo..."
-            git clone --branch master https://github.com/teaching-on-testbeds/gourmetgram.git /workspace/src
-            echo "Repo cloned. Contents:"
-            ls -la /workspace/src
-
-            /kaniko/executor \
-              --dockerfile=/workspace/src/Dockerfile \
-              --context=/workspace/src \
-              --destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:canary \
-              --destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:staging \
-              --destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:production \
-              --insecure \
-              --cache=true
+          - "--context=https://github.com/teaching-on-testbeds/gourmetgram.git"
+          - "--dockerfile=Dockerfile"
+          - "--destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:canary"
+          - "--destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:staging"
+          - "--destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:production"
+          - "--insecure"
+          - "--cache=true"
         volumeMounts:
           - name: docker-config
             mountPath: /kaniko/.docker
