@@ -16,33 +16,62 @@ kind: Workflow
 metadata:
   name: build-initial
 spec:
-  entrypoint: kaniko-clone-and-build
+  entrypoint: build-process
   volumes:
+    - name: shared-workspace
+      emptyDir: {}
     - name: docker-config
       configMap:
         name: kaniko-docker-config
 
   templates:
-    - name: kaniko-clone-and-build
+    - name: build-process
+      steps:
+        - - name: clone-repo
+            template: git-clone
+        - - name: verify-clone
+            template: list-files
+        - - name: kaniko-build
+            template: kaniko-build
+
+    - name: git-clone
       container:
-        image: gcr.io/kaniko-project/executor:debug
-        command: ["/bin/sh", "-c"]
+        image: alpine/git
+        command: [sh, -c]
         args:
           - |
             set -eux
-            echo "Cloning repo into /workspace..."
             git clone --branch master https://github.com/teaching-on-testbeds/gourmetgram.git /workspace
-            echo "Repo cloned. Listing contents:"
-            ls -la /workspace
-
-            /kaniko/executor \
-              --dockerfile=Dockerfile \
-              --context=/workspace \
-              --destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:canary \
-              --destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:staging \
-              --destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:production \
-              --insecure \
-              --cache=true
         volumeMounts:
+          - name: shared-workspace
+            mountPath: /workspace
+
+    - name: list-files
+      container:
+        image: alpine
+        command: [sh, -c]
+        args:
+          - |
+            echo "Verifying cloned repo contents:"
+            ls -la /workspace
+        volumeMounts:
+          - name: shared-workspace
+            mountPath: /workspace
+
+    - name: kaniko-build
+      container:
+        image: gcr.io/kaniko-project/executor:latest
+        command: ["/kaniko/executor"]
+        args:
+          - "--dockerfile=Dockerfile"
+          - "--context=/workspace"
+          - "--destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:canary"
+          - "--destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:staging"
+          - "--destination=registry.kube-system.svc.cluster.local:5000/gourmetgram-app:production"
+          - "--insecure"
+          - "--cache=true"
+        volumeMounts:
+          - name: shared-workspace
+            mountPath: /workspace
           - name: docker-config
             mountPath: /kaniko/.docker
