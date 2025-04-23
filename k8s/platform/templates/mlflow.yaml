@@ -21,11 +21,9 @@ spec:
             - containerPort: 8000
           resources:
             requests:
-              memory: "512Mi"
-              cpu: "250m"
+              memory: "2Gi"
             limits:
-              memory: "1Gi"
-              cpu: "500m"
+              memory: "4Gi"
           env:
             - name: MLFLOW_TRACKING_URI
               value: http://0.0.0.0:8000
