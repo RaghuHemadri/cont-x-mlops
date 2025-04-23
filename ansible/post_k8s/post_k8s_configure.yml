@@ -172,3 +172,34 @@
       args:
         executable: /bin/bash
 
+- name: Copy ArgoCD admin secret to Argo Workflows namespace
+  hosts: node1
+  become: yes
+  vars:
+    source_namespace: argocd
+    target_namespace: argo
+    secret_name: argocd-initial-admin-secret
+
+  tasks:
+    - name: Get ArgoCD admin secret YAML
+      command: >
+        kubectl get secret {{ secret_name }} -n {{ source_namespace }} -o yaml
+      register: secret_yaml
+
+    - name: Modify namespace in secret YAML
+      set_fact:
+        updated_secret_yaml: >-
+          {{ secret_yaml.stdout
+            | regex_replace('namespace: .*', 'namespace: ' ~ target_namespace)
+            | regex_replace('  resourceVersion: .*', '')
+            | regex_replace('  uid: .*', '')
+            | regex_replace('  creationTimestamp: .*', '') }}
+
+    - name: Apply secret to target namespace
+      shell: |
+        echo "{{ updated_secret_yaml }}" | kubectl apply -n {{ target_namespace }} -f -
+      register: apply_result
+
+    - name: Show apply result
+      debug:
+        var: apply_result.stdout
