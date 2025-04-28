@@ -1,9 +1,9 @@
-data "openstack_networking_network_v2" "sharednet3" {
-  name = "sharednet3"
+data "openstack_networking_network_v2" "sharednet2" {
+  name = "sharednet2"
 }
 
-data "openstack_networking_subnet_v2" "sharednet3_subnet" {
-  name = "sharednet3-subnet"
+data "openstack_networking_subnet_v2" "sharednet2_subnet" {
+  name = "sharednet2-subnet"
 }
 
 data "openstack_networking_secgroup_v2" "allow_ssh" {
