@@ -27,7 +27,11 @@ spec:
       command: [sh, -c]
       args:
         - |
-          git clone --branch master https://github.com/teaching-on-testbeds/gourmetgram.git /mnt/workspace
+          for i in {1..5}; do
+            git clone --branch master https://github.com/teaching-on-testbeds/gourmetgram.git /mnt/workspace && break
+            echo "Git clone failed. Retrying in 5 seconds... ($i/5)"
+            sleep 5
+          done
       volumeMounts:
       - name: workdir
         mountPath: /mnt/workspace
