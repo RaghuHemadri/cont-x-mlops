@@ -217,3 +217,21 @@
     - name: Show apply result
       debug:
         var: apply_result.stdout
+
+- name: Disable IPv6 on all and default interfaces
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Create sysctl config to disable IPv6
+      copy:
+        dest: /etc/sysctl.d/99-disable-ipv6.conf
+        content: |
+          net.ipv6.conf.all.disable_ipv6 = 1
+          net.ipv6.conf.default.disable_ipv6 = 1
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Apply sysctl settings immediately
+      command: sysctl --system
