@@ -218,7 +218,7 @@
       debug:
         var: apply_result.stdout
 
-- name: Disable IPv6 on all and default interfaces
+- name: Disable IPv6 on Internet-facing interface
   hosts: all
   become: true
   tasks:
