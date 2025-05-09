@@ -1,69 +1,65 @@
-resource "openstack_networking_network_v2" "private_net" {
-  name                  = "private-net-mlops-${var.suffix}"
-  port_security_enabled = false
-}
-
-resource "openstack_networking_subnet_v2" "private_subnet" {
-  name       = "private-subnet-mlops-${var.suffix}"
-  network_id = openstack_networking_network_v2.private_net.id
-  cidr       = "192.168.1.0/24"
-  no_gateway = true
-}
-
-resource "openstack_networking_port_v2" "private_net_ports" {
-  for_each              = var.nodes
-  name                  = "port-${each.key}-mlops-${var.suffix}"
-  network_id            = openstack_networking_network_v2.private_net.id
-  port_security_enabled = false
-
-  fixed_ip {
-    subnet_id  = openstack_networking_subnet_v2.private_subnet.id
-    ip_address = each.value
+terraform {
+  required_providers {
+    openstack = {
+      source  = "terraform-provider-openstack/openstack"
+      version = ">= 3.0.0"
+    }
   }
 }
 
-resource "openstack_networking_port_v2" "sharednet2_ports" {
-  for_each   = var.nodes
-    name       = "sharednet2-${each.key}-mlops-${var.suffix}"
-    network_id = data.openstack_networking_network_v2.sharednet2.id
-    security_group_ids = [
-      data.openstack_networking_secgroup_v2.allow_ssh.id,
-      data.openstack_networking_secgroup_v2.allow_9001.id,
-      data.openstack_networking_secgroup_v2.allow_8000.id,
-      data.openstack_networking_secgroup_v2.allow_8080.id,
-      data.openstack_networking_secgroup_v2.allow_8081.id,
-      data.openstack_networking_secgroup_v2.allow_http_80.id,
-      data.openstack_networking_secgroup_v2.allow_9090.id
-    ]
+provider "openstack" {
+  auth_url                    = var.auth_url
+  region                      = var.region
+  application_credential_id   = var.application_credential_id
+  application_credential_secret = var.application_credential_secret
 }
 
-resource "openstack_compute_instance_v2" "nodes" {
-  for_each = var.nodes
+# Pull network info
+data "openstack_networking_network_v2" "network" {
+  name = var.network_name
+}
 
-  name        = "${each.key}-mlops-${var.suffix}"
-  image_name  = "CC-Ubuntu24.04"
-  flavor_name = "m1.medium"
-  key_pair    = var.key
+# Keypair
+resource "openstack_compute_keypair_v2" "keypair" {
+  name       = var.keypair_name
+  public_key = file(var.public_key_path)
+}
+
+# Create dedicated port for controller
+resource "openstack_networking_port_v2" "controller_port" {
+  name       = "controller-port-project17"
+  network_id = data.openstack_networking_network_v2.network.id
+}
+
+# Floating IP associated with port
+resource "openstack_networking_floatingip_v2" "controller_fip" {
+  pool    = "public"
+  port_id = openstack_networking_port_v2.controller_port.id
+}
+
+# Controller node
+resource "openstack_compute_instance_v2" "controller" {
+  name            = "controller-project17"
+  image_name      = var.image_name
+  flavor_name     = var.flavor_name
+  key_pair        = openstack_compute_keypair_v2.keypair.name
+  security_groups = ["default"]
 
   network {
-    port = openstack_networking_port_v2.sharednet2_ports[each.key].id
+    port = openstack_networking_port_v2.controller_port.id
   }
+}
+
+# Worker nodes (no floating IP)
+resource "openstack_compute_instance_v2" "worker" {
+  count           = 2
+  name            = "worker${count.index}-project17"
+  image_name      = var.image_name
+  flavor_name     = var.flavor_name
+  key_pair        = openstack_compute_keypair_v2.keypair.name
+  security_groups = ["default"]
 
   network {
-    port = openstack_networking_port_v2.private_net_ports[each.key].id
+    name = var.network_name
   }
-
-  user_data = <<-EOF
-    #! /bin/bash
-    sudo echo "127.0.1.1 ${each.key}-mlops-${var.suffix}" >> /etc/hosts
-    su cc -c /usr/local/bin/cc-load-public-keys
-  EOF
-
 }
-
-resource "openstack_networking_floatingip_v2" "floating_ip" {
-  pool        = "public"
-  description = "MLOps IP for ${var.suffix}"
-  port_id     = openstack_networking_port_v2.sharednet2_ports["node1"].id
-}
-
