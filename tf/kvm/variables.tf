@@ -1,20 +1,22 @@
-variable "suffix" {
-  description = "Suffix for resource names (use net ID)"
-  type        = string
-  nullable = false
+variable "auth_url" {
+  default = "https://kvm.tacc.chameleoncloud.org:5000/v3"
 }
 
-variable "key" {
-  description = "Name of key pair"
-  type        = string
-  default     = "id_rsa_chameleon"
+variable "region" {
+  default = "KVM@TACC"
 }
 
-variable "nodes" {
-  type = map(string)
-  default = {
-    "node1" = "192.168.1.11"
-    "node2" = "192.168.1.12"
-    "node3" = "192.168.1.13"
-  }
+variable "application_credential_id" {}
+variable "application_credential_secret" {}
+
+variable "keypair_name" {}
+variable "public_key_path" {}
+variable "network_name" {
+  default = "sharednet1"
+}
+variable "image_name" {
+  default = "CC-Ubuntu24.04"
+}
+variable "flavor_name" {
+  default = "m1.medium"
 }
